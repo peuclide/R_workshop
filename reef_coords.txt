@@ -1,0 +1,10 @@
+site lat lon
+A-can 41.41.49 83.07.55
+Cone_Reef 41.40.00 83.02.85
+D-can 41.38.57 82.57.39
+Flat_Rock 41.39.49 83.01.20
+K-can 41.37.86 83.04.88
+Locust_Reef 41.38.70 83.04.05
+Niagara_Reef 41.39.85 82.58.40
+Round_Reef 41.37.03 82.59.65
+Turtle_Reef 41.38.93 83.05.93
