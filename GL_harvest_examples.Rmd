@@ -1,0 +1,145 @@
+---
+title: "Great Lakes Harvest Data"
+author: "Peter Euclide"
+date: "July 6, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(XLConnect)
+library(knitr)
+
+Erie <-  readWorksheetFromFile("GLcommercialData.xls", sheet = 1)
+Ontario <- readWorksheetFromFile("GLcommercialData.xls", sheet = 2)
+Huron <-  readWorksheetFromFile("GLcommercialData.xls", sheet = 3)
+Superior <- readWorksheetFromFile("GLcommercialData.xls", sheet = 4)
+Michigan <- readWorksheetFromFile("GLcommercialData.xls", sheet = 5)
+St.Clair <- readWorksheetFromFile("GLcommercialData.xls", sheet = 6)
+
+```
+
+#gather() function (tidyr)
+most plotting with ggplot works best with long dataframes, to convert a wide data frame to long you can use the gather function. 
+
+the sytax is fairly simple, "key" refers to the name of the new column that is currently represented by multiple columns. In this data set columns the columns we are interested address the harvest at each site in the lake. "value" referst to the new column name where the numbers we are interested will go, in this case the actual harvest. Finally, we subtract out all of the additional explanitory columns, in this case, Species, Lake, Year, Comments and SurfaceAreaAcres. 
+
+```{r}
+Erie_long <- Erie %>% gather(key = Site, value = harvest, -c(Species, Lake, Year, Comments, SurfaceAreaAcres))
+
+Huron_long <- Huron %>% gather(key = Site, value = harvest, -c(Species, Lake, Year, Comments, SurfaceAreaAcres))
+
+Michigan_long <- Michigan %>% gather(key = Site, value = harvest, -c(Species, Lake, Year, Comments, SurfaceAreaAcres))
+
+Ontario_long <- Ontario %>% gather(key = Site, value = harvest, -c(Species, Lake, Year, Comments, SurfaceAreaAcres))
+
+Superior_long <- Superior %>% gather(key = Site, value = harvest, -c(Species, Lake, Year, Comments, SurfaceAreaAcres))
+
+St.Clair_long <- St.Clair %>% gather(key = Site, value = harvest, -c(Species, Lake, Year, Comments, SurfaceAreaAcres))
+
+#### rbind everything into a single datasheet
+GL_data <- rbind(Erie_long, Huron_long, Michigan_long, Ontario_long, Superior_long, St.Clair_long)
+GL_data$harvest <- as.numeric(GL_data$harvest)
+
+
+```
+
+```{r}
+#### use dplyr to summarize top 5 species across the great lakes
+
+top_reports <- GL_data %>% group_by(Lake) %>% count(Species) %>% top_n(5)
+head(top_reports)
+
+top_harvest <- GL_data %>% group_by(Lake, Species) %>% 
+  summarise(All_harvest = sum(harvest, na.rm = T),
+            Mean_harvest = mean(harvest, na.rm = T),
+            SD_harvest = sd(harvest, na.rm = T)) %>% 
+  top_n(5)
+
+
+```
+
+# inserting tables into a report
+
+If you want a table in the report you can add it with kable() function
+
+```{r create table}
+
+column_names <- c("Lake", "Species", "Total Harvest (Lbs)", "Mean Harvest (Lbs)", "Standard Deviation")
+table_caption <- "this is a table summarizing harvest in the Great Lakes."
+
+kable(top_harvest, digits = 2, col.names = column_names, caption = table_caption)
+
+```
+
+
+```{r}
+
+ggplot(top_reports, aes(Lake, y = n, fill = Species))+
+  geom_bar(stat = "identity")+
+  theme_classic()+
+  theme(legend.position = 'bottom')
+
+ggplot(top_harvest, aes(Lake, y = All_harvest, fill = Species))+
+  geom_bar(stat = "identity")+
+  theme_classic()+
+  theme(legend.position = 'bottom')
+
+# facet_grid
+ggplot(top_harvest, aes(Species, y= All_harvest))+
+  facet_grid(.~Lake)+
+  geom_bar(stat = "identity")+
+  theme_classic()+
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 90, hjust =1))
+
+ggplot(top_harvest, aes(Lake, y= All_harvest))+
+  facet_wrap(~Species)+
+  geom_bar(stat = "identity")+
+  theme_classic()+
+  theme(legend.position = "bottom",
+        axis.text.x = element_text(angle = 90, hjust =1))
+```
+
+# harvest of Lake whitefish by lake
+
+We can use dplyr to again summarize data, and then plot the subsequent summary
+
+```{r}
+# summarize data
+wh_by_year <- GL_data %>% filter(Species == "Lake Whitefish") %>%
+  group_by(Lake, Year) %>%
+  summarize(Total_catch = sum(harvest, na.rm = T),
+            Mean_catch = mean(harvest, na.rm = T),
+            SD_catch = sd(harvest, na.rm = T))
+
+# now plot the summary
+ggplot(wh_by_year, aes(y = Mean_catch, x = Year, color = Lake))+
+  geom_line()
+```
+
+
+## orrrrrrrr
+
+we can combine dplyr and ggplot and pipe directly into the figure
+
+```{r}
+
+GL_data %>% filter(Species == "Lake Whitefish") %>%
+  group_by(Lake, Year) %>%
+  summarize(Total_catch = sum(harvest, na.rm = T),
+            Mean_catch = mean(harvest, na.rm = T),
+            SD_catch = sd(harvest, na.rm = T)) %>% 
+  ggplot(aes(y = Mean_catch, x = Year, color = Lake))+
+  geom_line()
+  
+```
+
+
+```{r}
+
+
+```
+
